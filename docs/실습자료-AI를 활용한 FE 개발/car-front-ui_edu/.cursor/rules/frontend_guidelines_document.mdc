@@ -1,0 +1,71 @@
+---
+description: Apply these rules when making changes to the project
+globs:
+alwaysApply: true
+---
+
+Update this rule if user requested changes to the project requirement, etc.
+
+# Frontend Guideline Document for 카센터 시스템
+
+This document outlines the frontend architecture, design principles, and technologies used for the 카센터 시스템. It is aimed at providing a clear and comprehensive understanding of the frontend setup, even for readers without a technical background.
+
+## 1. 프론트엔드 아키텍처
+
+- **React 18** 함수형 컴포넌트와 Hooks 기반
+- **TypeScript**
+- **폴더 구조**
+
+  - src/pages: 라우트별 페이지 컴포넌트
+  - src/components: 재사용 UI 컴포넌트
+  - src/hooks: 커스텀 훅
+  - src/routes: 라우팅 설정
+  - src/services: API 호출
+  - src/stores: 글로벌 상태관리(Zustand)
+  - src/types: 타입 정의
+  - src/assets: 이미지, 아이콘
+  - src/styles: 글로벌 CSS
+  - src/i18n: 다국어 리소스(en.json, ko.json)
+  - src/types: TypeScript 타입 정의
+
+- **라우팅**: React Router (SPA 라우팅)
+- **상태관리**: Zustand
+- **국제화**: react-i18next
+- **스타일링**: Tailwind CSS
+- **빌드**: Vite
+
+## 2. 디자인 원칙
+
+- 사용성, 접근성, 반응형(React + CSS Grid/Flexbox)
+- 버튼/폼 등은 명확한 aria-label, alt, role 속성 사용
+- 모바일/태블릿/데스크탑 대응
+
+## 3. 스타일링 및 테마
+
+- CSS Modules로 컴포넌트 단위 스타일 분리
+- BEM(Block Element Modifier) 네이밍 가능
+- CSS 변수(:root)로 색상/폰트/간격 관리
+- 기본은 밝은 테마, 다크모드는 변수 오버라이드로 확장 가능
+
+## 4. 컴포넌트 구조
+
+- Atomic(작은 단위) → Composite(조합) → Page
+- 파일/폴더: kebab-case, 컴포넌트: PascalCase
+- 예시: <BaseButton />, <PersonnelCard />
+
+## 5. 상태관리
+
+- 글로벌 상태: Zustand, 로컬 상태: useState/useReducer
+
+## 6. 라우팅 및 네비게이션
+
+- React Router v6 이상
+- src/pages/에 각 라우트별 컴포넌트
+- 인증/권한 체크: Route Guard(HOC 또는 useEffect)
+- 레이아웃: AuthLayout, MainLayout 등
+
+## 7. 성능 최적화
+
+- 코드 스플리팅: React.lazy, Suspense
+- 이미지 최적화, CSS/JS 번들 최소화
+

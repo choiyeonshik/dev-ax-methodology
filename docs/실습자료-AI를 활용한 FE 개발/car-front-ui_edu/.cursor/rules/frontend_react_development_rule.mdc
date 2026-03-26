@@ -1,0 +1,121 @@
+---
+description: Frontend - React 프로젝트 개발의 전반적인 규칙과 가이드라인
+globs: *.tsx,*.ts,*.js
+alwaysApply: true
+---
+
+# React General Rules
+
+## 프로젝트 구조
+
+- `src/components/` - 재사용 컴포넌트
+- `src/pages/` - 라우트별 페이지 컴포넌트
+- `src/hooks/` - 커스텀 훅
+- `src/services/` - API 호출 로직
+- `src/stores/` - 글로벌 상태관리(Zustand)
+- `src/types/` - 타입 정의
+
+## 코딩 스타일
+
+- React Function Component + Hooks 필수
+- 파일 확장자: .tsx, .ts
+- TypeScript strict 모드
+- ESLint + Prettier 규칙 준수
+- 단일 책임 원칙
+- JSDoc 주석 추가
+- 파일 상단에 기능 설명 주석 추가
+- API 호출은 src/services에 기능별로 작성, async/await 방식
+
+### 예약어 사용 금지
+
+- 예약어는 절대 사용하지 않습니다.
+
+### 함수/이벤트 네이밍
+
+- 함수: 동사(CamelCase)
+
+```typescript
+const getName = () => {
+  return name;
+};
+```
+
+- 이벤트 핸들러: handle+동사
+
+```typescript
+const handleClick = (param: string) => {
+  alert(param + " clicked.");
+};
+```
+
+### 변수
+
+- var 사용 금지, let/const만 사용
+- 변수명: 명사(CamelCase)
+
+### Boolean 변수
+
+- is/has 접두어 사용
+
+## 네이밍 컨벤션
+
+- 컴포넌트: PascalCase (예: UserProfile.tsx)
+- 훅: use 접두사 + camelCase (예: useUser.ts)
+- 서비스: camelCase + Service 접미사 (예: userService.ts)
+- 타입: PascalCase (예: User)
+- 변수/함수: camelCase
+- 상수: SCREAMING_SNAKE_CASE
+- 인터페이스: I + PascalCase (예: IUser)
+
+### 파일 주석
+
+```typescript
+/**
+ * 컴포넌트/모듈 설명
+ */
+```
+
+## 컴포넌트 구조
+
+```tsx
+/**
+ * 컴포넌트 설명
+ */
+import React from "react";
+
+interface Props {
+  // ...
+}
+
+const ExampleComponent: React.FC<Props> = (props) => {
+  // 1. 외부 라이브러리 import
+  // 2. 내부 모듈 import
+  // 3. Props/State 정의
+  // 4. Context/훅 사용
+  // 5. 이벤트/메서드
+  // 6. 렌더링
+  return <div>{/* ... */}</div>;
+};
+
+export default ExampleComponent;
+```
+
+## Props/이벤트 정의
+
+- Props는 interface로 타입 정의
+- 이벤트는 props로 콜백 전달
+
+## 템플릿 규칙
+
+- 배열 렌더링: {array.map((item) => ...)} (key 필수)
+- 조건부 렌더링: {condition && ...}
+- 이벤트 핸들러는 명확한 네이밍
+- 조건부 렌더링 시 Fragment(<></>) 활용
+
+## Modal 컴포넌트 구조
+
+- 화면내의 Modal 컴포넌트는 해당 화면 파일 경로에 modals 폴더를 만들고, modals 폴더 안에 생성하여 부모 화면과 연동
+
+## Tab 컴포넌트 구조
+
+- 화면내의 Tab 컴포넌트는 해당 화면 파일 경로에 tabs 폴더를 만들고, tabs 폴더 안에 생성하여 부모 화면과 연동
