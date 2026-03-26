@@ -1,0 +1,449 @@
+---
+globs: *.java
+description: 테스트 코드 작성 가이드라인 및 모범 사례
+---
+
+# 테스트 코드 작성 가이드라인
+
+## 테스트 환경 설정
+- **테스트 프레임워크**: JUnit 5 + Spring Boot Test
+- **Mock 라이브러리**: Mockito
+- **테스트 DB**: H2 In-Memory Database
+- **테스트 설정**: [application-test.yml](mdc:src/test/resources/application-test.yml)
+
+## 테스트 구조 및 명명 규칙
+
+### 테스트 클래스 구조
+```
+src/test/java/com/example/carcenter/
+├── {domain}/
+│   ├── controller/     # Controller 테스트
+│   ├── service/        # Service 테스트  
+│   ├── repository/     # Repository 테스트
+│   └── integration/    # 통합 테스트
+├── common/
+│   └── config/         # 테스트 설정
+└── CarCenterApplicationTests.java  # 애플리케이션 테스트
+```
+
+### 테스트 클래스 명명 규칙
+- **단위 테스트**: `{ClassName}Test`
+- **통합 테스트**: `{ClassName}IntegrationTest`
+- **슬라이스 테스트**: `{ClassName}WebMvcTest`, `{ClassName}DataTest`
+
+### 테스트 메서드 명명 규칙
+```java
+// Given_When_Then 패턴
+@Test
+void createUser_ValidRequest_ReturnsCreatedUser() { }
+
+// Should_When 패턴  
+@Test
+void shouldReturnUser_WhenValidIdProvided() { }
+
+// 한국어 메서드명 (선택사항)
+@Test
+@DisplayName("유효한 사용자 정보로 사용자를 생성할 수 있다")
+void 유효한_사용자_정보로_사용자를_생성할_수_있다() { }
+```
+
+## Controller 테스트
+
+### WebMvcTest 기본 구조
+```java
+@WebMvcTest(UserController.class)
+@Import({SecurityConfig.class, JwtTokenProvider.class})
+class UserControllerTest {
+    
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @MockBean
+    private UserService userService;
+    
+    @MockBean
+    private CustomUserDetailsService userDetailsService;
+    
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("사용자 목록 조회 - 성공")
+    void getUsers_ValidRequest_ReturnsUserList() throws Exception {
+        // Given
+        List<UserDto.Response> users = Arrays.asList(
+            UserDto.Response.builder()
+                .id(1L)
+                .username("user01")
+                .name("홍길동")
+                .build()
+        );
+        PageResponse<UserDto.Response> pageResponse = PageResponse.<UserDto.Response>builder()
+            .content(users)
+            .totalElements(1L)
+            .totalPages(1)
+            .build();
+        
+        when(userService.getUsers(any(), any())).thenReturn(pageResponse);
+        
+        // When & Then
+        mockMvc.perform(get("/api/users")
+                .param("page", "0")
+                .param("size", "10")
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.content[0].id").value(1))
+            .andExpect(jsonPath("$.data.content[0].username").value("user01"))
+            .andDo(print());
+    }
+    
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("사용자 생성 - 유효성 검증 실패")
+    void createUser_InvalidRequest_ReturnsBadRequest() throws Exception {
+        // Given
+        UserDto.CreateRequest invalidRequest = UserDto.CreateRequest.builder()
+            .username("") // 빈 값
+            .password("123") // 너무 짧음
+            .build();
+        
+        // When & Then
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidRequest)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andDo(print());
+    }
+}
+```
+
+### 인증 테스트
+```java
+@Test
+@DisplayName("인증되지 않은 사용자 접근 - 401 반환")
+void getUsers_Unauthenticated_ReturnsUnauthorized() throws Exception {
+    mockMvc.perform(get("/api/users"))
+        .andExpect(status().isUnauthorized());
+}
+
+@Test
+@WithMockUser(roles = "ADMIN")
+@DisplayName("관리자 권한 필요한 API - 성공")
+void adminOnlyApi_WithAdminRole_ReturnsSuccess() throws Exception {
+    mockMvc.perform(get("/api/admin/users"))
+        .andExpect(status().isOk());
+}
+```
+
+## Service 테스트
+
+### 단위 테스트 기본 구조
+```java
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+    
+    @Mock
+    private UserRepository userRepository;
+    
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    
+    @InjectMocks
+    private UserService userService;
+    
+    @Test
+    @DisplayName("사용자 ID로 조회 - 성공")
+    void getUserById_ExistingId_ReturnsUser() {
+        // Given
+        Long userId = 1L;
+        UserDto.Response expectedUser = UserDto.Response.builder()
+            .id(userId)
+            .username("user01")
+            .name("홍길동")
+            .build();
+        
+        when(userRepository.selectById(userId)).thenReturn(expectedUser);
+        
+        // When
+        UserDto.Response result = userService.getUserById(userId);
+        
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(userId);
+        assertThat(result.getUsername()).isEqualTo("user01");
+        
+        verify(userRepository).selectById(userId);
+    }
+    
+    @Test
+    @DisplayName("존재하지 않는 사용자 조회 - 예외 발생")
+    void getUserById_NonExistingId_ThrowsException() {
+        // Given
+        Long userId = 999L;
+        when(userRepository.selectById(userId)).thenReturn(null);
+        
+        // When & Then
+        assertThatThrownBy(() -> userService.getUserById(userId))
+            .isInstanceOf(BusinessException.class)
+            .hasMessage("사용자를 찾을 수 없습니다");
+        
+        verify(userRepository).selectById(userId);
+    }
+}
+```
+
+### 트랜잭션 테스트
+```java
+@SpringBootTest
+@Transactional
+class UserServiceIntegrationTest {
+    
+    @Autowired
+    private UserService userService;
+    
+    @Test
+    @DisplayName("사용자 생성 후 롤백 - 트랜잭션 테스트")
+    @Rollback
+    void createUser_TransactionRollback_UserNotPersisted() {
+        // Given
+        UserDto.CreateRequest request = UserDto.CreateRequest.builder()
+            .username("testuser")
+            .password("password123")
+            .name("테스트사용자")
+            .build();
+        
+        // When
+        UserDto.Response createdUser = userService.createUser(request);
+        
+        // Then
+        assertThat(createdUser).isNotNull();
+        assertThat(createdUser.getUsername()).isEqualTo("testuser");
+        
+        // 롤백 후 확인은 별도 테스트에서 수행
+    }
+}
+```
+
+## Repository 테스트
+
+### MyBatis 테스트
+```java
+@MybatisTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+class UserRepositoryTest {
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private TestEntityManager entityManager;
+    
+    @Test
+    @DisplayName("사용자 ID로 조회 - 성공")
+    void selectById_ExistingUser_ReturnsUser() {
+        // Given - 테스트 데이터 준비
+        // data.sql에서 자동으로 로드되거나 직접 삽입
+        
+        // When
+        UserDto.Response result = userRepository.selectById(1L);
+        
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(1L);
+    }
+    
+    @Test
+    @DisplayName("사용자 목록 조회 - 페이징")
+    void selectList_WithPaging_ReturnsPagedResult() {
+        // Given
+        Map<String, Object> params = new HashMap<>();
+        params.put("offset", 0);
+        params.put("size", 10);
+        
+        // When
+        List<UserDto.Response> result = userRepository.selectList(params);
+        int count = userRepository.selectCount(params);
+        
+        // Then
+        assertThat(result).isNotEmpty();
+        assertThat(count).isGreaterThan(0);
+    }
+}
+```
+
+## 통합 테스트
+
+### 전체 애플리케이션 테스트
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestPropertySource(locations = "classpath:application-test.yml")
+class UserIntegrationTest {
+    
+    @Autowired
+    private TestRestTemplate restTemplate;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Test
+    @DisplayName("사용자 생성 API 전체 플로우 테스트")
+    void createUser_FullFlow_Success() {
+        // Given
+        UserDto.CreateRequest request = UserDto.CreateRequest.builder()
+            .username("integrationtest")
+            .password("password123")
+            .name("통합테스트")
+            .email("test@example.com")
+            .build();
+        
+        // When
+        ResponseEntity<ApiResponse> response = restTemplate.postForEntity(
+            "/api/users", request, ApiResponse.class);
+        
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().isSuccess()).isTrue();
+        
+        // DB 확인
+        UserDto.Response savedUser = userRepository.selectByUsername("integrationtest");
+        assertThat(savedUser).isNotNull();
+        assertThat(savedUser.getName()).isEqualTo("통합테스트");
+    }
+}
+```
+
+## 테스트 데이터 관리
+
+### 테스트용 데이터 준비
+```java
+@TestConfiguration
+public class TestDataConfig {
+    
+    @Bean
+    @Primary
+    public UserRepository testUserRepository() {
+        return Mockito.mock(UserRepository.class);
+    }
+    
+    @EventListener
+    public void handleTestExecutionStarted(TestExecutionStartedEvent event) {
+        // 테스트 시작 전 데이터 준비
+    }
+}
+```
+
+### 테스트 픽스처 활용
+```java
+public class UserTestFixture {
+    
+    public static UserDto.CreateRequest createValidUserRequest() {
+        return UserDto.CreateRequest.builder()
+            .username("testuser")
+            .password("password123")
+            .name("테스트사용자")
+            .email("test@example.com")
+            .build();
+    }
+    
+    public static UserDto.Response createUserResponse(Long id) {
+        return UserDto.Response.builder()
+            .id(id)
+            .username("testuser")
+            .name("테스트사용자")
+            .email("test@example.com")
+            .createdAt(LocalDateTime.now())
+            .build();
+    }
+}
+```
+
+## 테스트 모범 사례
+
+### AAA 패턴 (Arrange-Act-Assert)
+```java
+@Test
+void testMethod() {
+    // Arrange (Given) - 테스트 데이터 준비
+    UserDto.CreateRequest request = UserTestFixture.createValidUserRequest();
+    
+    // Act (When) - 실제 동작 수행
+    UserDto.Response result = userService.createUser(request);
+    
+    // Assert (Then) - 결과 검증
+    assertThat(result).isNotNull();
+    assertThat(result.getUsername()).isEqualTo(request.getUsername());
+}
+```
+
+### 테스트 격리 및 독립성
+```java
+@TestMethodOrder(OrderAnnotation.class)
+class OrderedTest {
+    
+    @Test
+    @Order(1)
+    void firstTest() { }
+    
+    @Test
+    @Order(2)
+    void secondTest() { }
+}
+
+// 또는 각 테스트마다 독립적인 데이터 사용
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+```
+
+### 예외 테스트
+```java
+@Test
+void shouldThrowException_WhenInvalidInput() {
+    // Given
+    String invalidInput = null;
+    
+    // When & Then
+    assertThatThrownBy(() -> userService.processInput(invalidInput))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("입력값이 유효하지 않습니다");
+}
+```
+
+### 성능 테스트
+```java
+@Test
+@Timeout(value = 2, unit = TimeUnit.SECONDS)
+void shouldCompleteWithinTimeLimit() {
+    // 2초 내에 완료되어야 하는 테스트
+    userService.heavyOperation();
+}
+```
+
+## 테스트 커버리지
+
+### JaCoCo 설정 (build.gradle)
+```gradle
+plugins {
+    id 'jacoco'
+}
+
+jacoco {
+    toolVersion = "0.8.8"
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = false
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
+    }
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+```
+
+### 커버리지 목표
+- **라인 커버리지**: 최소 80%
+- **브랜치 커버리지**: 최소 70%
+- **메서드 커버리지**: 최소 90%

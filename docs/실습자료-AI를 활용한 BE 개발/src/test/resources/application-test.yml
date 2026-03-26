@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: car-center-devlab-test
+  
+  autoconfigure:
+    exclude:
+      - org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration
+
+# JWT 설정 (테스트용)
+jwt:
+  secret: testSecretKey123456789012345678901234567890123456789012345678901234567890
+  expiration: 86400000
+  refresh-expiration: 604800000
+
+# 로깅 설정
+logging:
+  level:
+    com.example.carcenter: INFO
+    org.springframework.security: WARN
+    org.mybatis: WARN

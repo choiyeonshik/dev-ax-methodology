@@ -1,0 +1,43 @@
+{
+	"id": "car-center-test-env",
+	"name": "Car Center - Test Environment",
+	"values": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "authUrl",
+			"value": "{{baseUrl}}/auth",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "usersUrl",
+			"value": "{{baseUrl}}/users",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "testPassword",
+			"value": "TestPassword123!",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "adminUsername",
+			"value": "admin",
+			"type": "default",
+			"enabled": true
+		},
+		{
+			"key": "adminPassword",
+			"value": "AdminPassword123!",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment"
+}

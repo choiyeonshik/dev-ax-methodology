@@ -1,0 +1,244 @@
+{
+	"info": {
+		"_postman_id": "car-center-quick-test",
+		"name": "Car Center - 빠른 테스트",
+		"description": "핵심 기능만 빠르게 테스트하는 컬렉션",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api",
+			"type": "string"
+		},
+		{
+			"key": "testUsername",
+			"value": "quicktest{{$timestamp}}",
+			"type": "string"
+		},
+		{
+			"key": "testEmail",
+			"value": "quicktest{{$timestamp}}@example.com",
+			"type": "string"
+		},
+		{
+			"key": "testPassword",
+			"value": "QuickTest123!",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. 헬스체크",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/health",
+					"host": ["{{baseUrl}}"],
+					"path": ["health"]
+				}
+			}
+		},
+		{
+			"name": "2. 회원가입",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"회원가입 성공\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\",\n  \"email\": \"{{testEmail}}\",\n  \"name\": \"빠른 테스트 사용자\",\n  \"phoneNumber\": \"010-1234-5678\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/register",
+					"host": ["{{baseUrl}}"],
+					"path": ["auth", "register"]
+				}
+			}
+		},
+		{
+			"name": "3. 로그인",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"로그인 성공\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    pm.expect(jsonData.data).to.have.property('accessToken');",
+							"    ",
+							"    // 토큰 저장",
+							"    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["auth", "login"]
+				}
+			}
+		},
+		{
+			"name": "4. 프로필 조회",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"프로필 조회 성공\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    pm.expect(jsonData.data.username).to.eql(pm.collectionVariables.get('testUsername'));",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{accessToken}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/users/profile",
+					"host": ["{{baseUrl}}"],
+					"path": ["users", "profile"]
+				}
+			}
+		},
+		{
+			"name": "5. 사용자명 중복 확인",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"중복 확인 성공\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    // 이미 등록된 사용자명이므로 available이 false여야 함",
+							"    pm.expect(jsonData.data.available).to.be.false;",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/auth/check-username?username={{testUsername}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["auth", "check-username"],
+					"query": [
+						{
+							"key": "username",
+							"value": "{{testUsername}}"
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "6. 비밀번호 검증",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test(\"비밀번호 검증 성공\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    pm.expect(jsonData.data.valid).to.be.true;",
+							"    pm.expect(jsonData.data.strength).to.be.greaterThan(3);",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"password\": \"{{testPassword}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/validate-password",
+					"host": ["{{baseUrl}}"],
+					"path": ["auth", "validate-password"]
+				}
+			}
+		}
+	],
+	"event": [
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test(\"응답 시간 5초 이내\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});"
+				]
+			}
+		}
+	]
+}

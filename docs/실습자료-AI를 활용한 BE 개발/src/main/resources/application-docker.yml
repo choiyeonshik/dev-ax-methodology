@@ -1,0 +1,89 @@
+# Docker 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: docker
+  
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/car_center_db?characterEncoding=UTF-8&useUnicode=true}
+    username: ${DB_USERNAME:car_center_user}
+    password: ${DB_PASSWORD:car_center_password}
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+  
+  # SQL 초기화 비활성화 (Docker에서는 별도 초기화 스크립트 사용)
+  sql:
+    init:
+      mode: never
+  
+  # Redis 설정
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis_password}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:myDockerSecretKey123456789012345678901234567890123456789012345678901234567890}
+  expiration: ${JWT_EXPIRATION:86400000} # 24시간
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7일
+
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    com.example.carcenter: INFO
+    org.springframework.security: WARN
+    org.mybatis: INFO
+  file:
+    name: /app/logs/car-center.log
+  logback:
+    rollingpolicy:
+      max-file-size: 100MB
+      max-history: 30
+      total-size-cap: 3GB
+
+# 서버 설정
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 20000
+    max-connections: 8192
+
+# Actuator 설정 (Docker 환경)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+
+# MyBatis 설정
+mybatis:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl

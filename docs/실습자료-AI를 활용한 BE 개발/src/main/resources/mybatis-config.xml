@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+    <!-- 설정 속성 -->
+    <settings>
+        <!-- 카멜케이스 자동 매핑 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        
+        <!-- 지연 로딩 활성화 -->
+        <setting name="lazyLoadingEnabled" value="true"/>
+        <setting name="aggressiveLazyLoading" value="false"/>
+        
+        <!-- 캐시 활성화 -->
+        <setting name="cacheEnabled" value="true"/>
+        
+        <!-- 다중 결과셋 허용 -->
+        <setting name="multipleResultSetsEnabled" value="true"/>
+        
+        <!-- 컬럼 라벨 사용 -->
+        <setting name="useColumnLabel" value="true"/>
+        
+        <!-- 자동 생성 키 사용 -->
+        <setting name="useGeneratedKeys" value="false"/>
+        
+        <!-- 자동 매핑 동작 -->
+        <setting name="autoMappingBehavior" value="PARTIAL"/>
+        <setting name="autoMappingUnknownColumnBehavior" value="WARNING"/>
+        
+        <!-- 기본 실행자 타입 -->
+        <setting name="defaultExecutorType" value="SIMPLE"/>
+        
+        <!-- 기본 문장 타임아웃 -->
+        <setting name="defaultStatementTimeout" value="30"/>
+        
+        <!-- 기본 페치 사이즈 -->
+        <setting name="defaultFetchSize" value="100"/>
+        
+        <!-- NULL 값에 대한 setter 호출 -->
+        <setting name="callSettersOnNulls" value="false"/>
+        
+        <!-- 빈 행에 대한 인스턴스 반환 -->
+        <setting name="returnInstanceForEmptyRow" value="false"/>
+        
+        <!-- 로그 접두사 -->
+        <setting name="logPrefix" value="[MyBatis] "/>
+        
+        <!-- 로그 구현체 -->
+        <setting name="logImpl" value="SLF4J"/>
+        
+        <!-- 설정 팩토리 -->
+        <setting name="configurationFactory" value=""/>
+        
+        <!-- 지역 캐시 범위 -->
+        <setting name="localCacheScope" value="SESSION"/>
+        
+        <!-- JDBC 타입 처리 -->
+        <setting name="jdbcTypeForNull" value="OTHER"/>
+        
+        <!-- 지연 로딩 트리거 메서드 -->
+        <setting name="lazyLoadTriggerMethods" value="equals,clone,hashCode,toString"/>
+        
+        <!-- 안전한 행 바운드 -->
+        <setting name="safeRowBoundsEnabled" value="false"/>
+        
+        <!-- 안전한 결과 핸들러 -->
+        <setting name="safeResultHandlerEnabled" value="true"/>
+        
+        <!-- 매핑된 문장에서 매개변수 사용 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+
+    <!-- 타입 별칭 -->
+    <typeAliases>
+        <!-- 공통 DTO -->
+        <typeAlias alias="PageRequest" type="com.example.carcenter.common.dto.PageRequest"/>
+        <typeAlias alias="PageResponse" type="com.example.carcenter.common.dto.PageResponse"/>
+        <typeAlias alias="ApiResponse" type="com.example.carcenter.common.response.ApiResponse"/>
+        
+        <!-- 사용자 관련 -->
+        <typeAlias alias="UserDto" type="com.example.carcenter.user.dto.UserDto"/>
+        
+        <!-- 차량 관련 -->
+        <typeAlias alias="VehicleDto" type="com.example.carcenter.vehicle.dto.VehicleDto"/>
+        
+        <!-- 정비소 관련 -->
+        <typeAlias alias="ShopDto" type="com.example.carcenter.shop.dto.ShopDto"/>
+        <typeAlias alias="TechnicianDto" type="com.example.carcenter.shop.dto.TechnicianDto"/>
+        
+        <!-- 예약 관련 -->
+        <typeAlias alias="BookingDto" type="com.example.carcenter.booking.dto.BookingDto"/>
+        
+        <!-- 정비 관련 -->
+        <typeAlias alias="MaintenanceDto" type="com.example.carcenter.maintenance.dto.MaintenanceDto"/>
+        <typeAlias alias="QuoteDto" type="com.example.carcenter.maintenance.dto.QuoteDto"/>
+        
+        <!-- 결제 관련 -->
+        <typeAlias alias="PaymentDto" type="com.example.carcenter.payment.dto.PaymentDto"/>
+        
+        <!-- 알림 관련 -->
+        <typeAlias alias="NotificationDto" type="com.example.carcenter.notification.dto.NotificationDto"/>
+    </typeAliases>
+
+    <!-- 타입 핸들러 -->
+    <typeHandlers>
+        <!-- JSON 타입 핸들러 (PostgreSQL, H2 JSON 컬럼 처리용) -->
+        <!-- 필요시 커스텀 타입 핸들러 추가 -->
+    </typeHandlers>
+
+    <!-- 객체 팩토리 -->
+    <objectFactory type="org.apache.ibatis.reflection.factory.DefaultObjectFactory">
+        <!-- 객체 팩토리 속성 -->
+    </objectFactory>
+
+    <!-- 플러그인 -->
+    <plugins>
+        <!-- 페이징 플러그인 (필요시 추가) -->
+        <!-- 
+        <plugin interceptor="com.github.pagehelper.PageInterceptor">
+            <property name="helperDialect" value="h2"/>
+            <property name="reasonable" value="true"/>
+            <property name="supportMethodsArguments" value="true"/>
+            <property name="params" value="count=countSql"/>
+        </plugin>
+        -->
+    </plugins>
+
+    <!-- 환경 설정 (Spring Boot에서는 자동 설정되므로 주석 처리) -->
+    <!--
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="${driver}"/>
+                <property name="url" value="${url}"/>
+                <property name="username" value="${username}"/>
+                <property name="password" value="${password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+    -->
+
+    <!-- 매퍼 등록 (Spring Boot에서는 자동 스캔되므로 주석 처리) -->
+    <!--
+    <mappers>
+        <mapper resource="mapper/user/UserMapper.xml"/>
+        <mapper resource="mapper/vehicle/VehicleMapper.xml"/>
+        <mapper resource="mapper/shop/ShopMapper.xml"/>
+        <mapper resource="mapper/booking/BookingMapper.xml"/>
+        <mapper resource="mapper/maintenance/MaintenanceMapper.xml"/>
+        <mapper resource="mapper/payment/PaymentMapper.xml"/>
+        <mapper resource="mapper/notification/NotificationMapper.xml"/>
+    </mappers>
+    -->
+</configuration>

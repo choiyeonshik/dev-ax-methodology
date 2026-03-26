@@ -1,0 +1,90 @@
+---
+alwaysApply: true
+description: Java Spring Boot 프로젝트 구조 및 패키지 규칙
+---
+
+# Java Spring Boot 프로젝트 구조 및 패키지 규칙
+
+## 프로젝트 기본 정보
+- **프로젝트명**: car-center-devlab
+- **Java 버전**: 17
+- **Spring Boot 버전**: 3.4.1
+- **빌드 도구**: Gradle 8.14.3
+- **패키지 루트**: `com.example.carcenter`
+
+## 패키지 구조 규칙
+
+### 도메인별 패키지 구조 [[memory:4205676]]
+각 도메인은 다음과 같은 하위 패키지를 가져야 합니다:
+```
+com.example.carcenter.{domain}
+├── controller/     # REST API 컨트롤러
+├── service/        # 비즈니스 로직 서비스
+├── repository/     # 데이터 접근 계층 (MyBatis)
+├── dto/           # 데이터 전송 객체
+├── config/        # 도메인별 설정 (필요시)
+└── exception/     # 도메인별 예외 (필요시)
+```
+
+### 공통 패키지 구조
+```
+com.example.carcenter.common
+├── config/        # 전역 설정 (Security, Swagger 등)
+├── dto/          # 공통 DTO (PageRequest, PageResponse 등)
+├── exception/    # 전역 예외 처리
+├── response/     # 공통 응답 객체
+└── security/     # 보안 관련 공통 클래스
+```
+
+## 클래스 명명 규칙
+
+### Controller
+- 클래스명: `{Domain}Controller`
+- 예시: `UserController`, `AuthController`
+- 어노테이션: `@RestController`, `@RequestMapping("/api/{domain}")`
+
+### Service
+- 클래스명: `{Domain}Service`
+- 예시: `UserService`, `AuthService`
+- 어노테이션: `@Service`, `@Transactional`
+
+### Repository
+- 클래스명: `{Domain}Repository`
+- 예시: `UserRepository`
+- 어노테이션: `@Repository`, `@Mapper`
+
+### DTO
+- 클래스명: `{Domain}Dto`
+- 내부 클래스 활용: `UserDto.CreateRequest`, `UserDto.Response`
+- 어노테이션: `@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`
+
+## 파일 위치 규칙
+
+### Java 소스 파일
+- 위치: `src/main/java/com/example/carcenter/`
+- 메인 클래스: [CarCenterApplication.java](mdc:src/main/java/com/example/carcenter/CarCenterApplication.java)
+
+### 리소스 파일
+- 설정 파일: [application.yml](mdc:src/main/resources/application.yml)
+- MyBatis 매퍼: `src/main/resources/mapper/{domain}/`
+- SQL 스크립트: `src/main/resources/sql/`
+
+### 테스트 파일
+- 위치: `src/test/java/com/example/carcenter/`
+- 테스트 설정: [application-test.yml](mdc:src/test/resources/application-test.yml)
+
+## 코딩 스타일 가이드
+
+### 어노테이션 순서
+1. 클래스 레벨: `@RestController` → `@RequestMapping` → `@RequiredArgsConstructor`
+2. 메서드 레벨: `@GetMapping` → `@Operation` → `@Parameter`
+
+### 메서드 명명
+- Controller: HTTP 메서드 + 동작 (예: `getUsers`, `createUser`)
+- Service: 비즈니스 동작 (예: `findUserById`, `registerUser`)
+- Repository: 데이터 접근 동작 (예: `selectUserById`, `insertUser`)
+
+### 예외 처리
+- 비즈니스 예외: `BusinessException` 상속
+- 전역 예외 처리: [GlobalExceptionHandler](mdc:src/main/java/com/example/carcenter/common/exception/GlobalExceptionHandler.java)
+- 에러 코드: [ErrorCode](mdc:src/main/java/com/example/carcenter/common/exception/ErrorCode.java) enum 활용

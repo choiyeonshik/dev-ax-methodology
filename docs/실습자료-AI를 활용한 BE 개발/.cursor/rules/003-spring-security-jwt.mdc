@@ -1,0 +1,268 @@
+---
+globs: *.java
+description: Spring Security 및 JWT 인증 보안 가이드라인
+---
+
+# Spring Security 및 JWT 인증 보안 가이드라인
+
+## 보안 설정 정보
+- **JWT Secret**: 환경변수 `JWT_SECRET` 또는 기본값 사용
+- **토큰 만료**: 24시간 (Access Token), 7일 (Refresh Token)
+- **보안 설정**: [SecurityConfig.java](mdc:src/main/java/com/example/carcenter/common/config/SecurityConfig.java)
+
+## JWT 토큰 관리
+
+### JWT 설정 (application.yml)
+```yaml
+jwt:
+  secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890123456789012345678901234567890}
+  expiration: ${JWT_EXPIRATION:86400000} # 24시간
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7일
+```
+
+### JwtTokenProvider 구현 규칙
+```java
+@Component
+public class JwtTokenProvider {
+    
+    // 토큰 생성
+    public String generateToken(Authentication authentication) {
+        // UserPrincipal에서 사용자 정보 추출
+        // JWT Claims 설정 (sub, iat, exp)
+        // 서명 및 토큰 반환
+    }
+    
+    // 토큰 검증
+    public boolean validateToken(String token) {
+        // 토큰 파싱 및 서명 검증
+        // 만료 시간 확인
+        // 예외 처리 (MalformedJwtException, ExpiredJwtException 등)
+    }
+    
+    // 사용자 정보 추출
+    public String getUsernameFromToken(String token) {
+        // Claims에서 subject 추출
+    }
+}
+```
+
+## Spring Security 설정
+
+### SecurityConfig 기본 구조
+```java
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
+    
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthenticationFilter(), 
+                UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+            .build();
+    }
+}
+```
+
+### 인증 필터 체인
+1. **JwtAuthenticationFilter**: JWT 토큰 검증 및 인증 설정
+2. **UsernamePasswordAuthenticationFilter**: 기본 인증 필터
+3. **JwtAuthenticationEntryPoint**: 인증 실패 시 처리
+
+## 인증/인가 구현
+
+### 인증 컨트롤러 패턴
+```java
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+    
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<UserDto.LoginResponse>> login(
+            @Valid @RequestBody UserDto.LoginRequest request) {
+        // 1. 사용자 인증 (username/password)
+        // 2. JWT 토큰 생성
+        // 3. 응답 반환 (access_token, refresh_token, user_info)
+    }
+    
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<UserDto.LoginResponse>> refresh(
+            @RequestHeader("Authorization") String refreshToken) {
+        // 1. Refresh Token 검증
+        // 2. 새로운 Access Token 생성
+        // 3. 응답 반환
+    }
+    
+    @PostMapping("/logout")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        // 1. 토큰 블랙리스트 처리 (선택사항)
+        // 2. 로그아웃 처리
+    }
+}
+```
+
+### UserDetailsService 구현
+```java
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
+    
+    @Override
+    public UserDetails loadUserByUsername(String username) 
+            throws UsernameNotFoundException {
+        // 1. 사용자 정보 조회
+        // 2. UserPrincipal 객체 생성 및 반환
+        // 3. 사용자 없을 시 UsernameNotFoundException 발생
+    }
+}
+```
+
+## 보안 어노테이션 활용
+
+### 메서드 레벨 보안
+```java
+// 역할 기반 접근 제어
+@PreAuthorize("hasRole('ADMIN')")
+public void adminOnlyMethod() { }
+
+// 사용자 본인만 접근
+@PreAuthorize("hasRole('USER') and #userId == authentication.principal.id")
+public UserDto.Response getUserProfile(Long userId) { }
+
+// 복합 조건
+@PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and #request.userId == authentication.principal.id)")
+public void updateUser(UserDto.UpdateRequest request) { }
+```
+
+### 컨트롤러 레벨 보안
+```java
+@RestController
+@RequestMapping("/api/users")
+@PreAuthorize("hasRole('USER')") // 클래스 전체에 적용
+public class UserController {
+    
+    @GetMapping("/profile")
+    public ResponseEntity<UserDto.Response> getProfile(
+            Authentication authentication) {
+        // 현재 인증된 사용자 정보 활용
+    }
+}
+```
+
+## 예외 처리
+
+### 인증 관련 예외
+```java
+@Component
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+    
+    @Override
+    public void commence(HttpServletRequest request, 
+                        HttpServletResponse response,
+                        AuthenticationException authException) {
+        // 401 Unauthorized 응답 처리
+        // JSON 형태의 에러 응답 반환
+    }
+}
+```
+
+### 전역 예외 처리
+```java
+@ExceptionHandler(AccessDeniedException.class)
+public ResponseEntity<ApiResponse<Void>> handleAccessDenied(
+        AccessDeniedException e) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(ApiResponse.error(ErrorCode.ACCESS_DENIED));
+}
+
+@ExceptionHandler(AuthenticationException.class)
+public ResponseEntity<ApiResponse<Void>> handleAuthentication(
+        AuthenticationException e) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(ApiResponse.error(ErrorCode.UNAUTHORIZED));
+}
+```
+
+## 보안 모범 사례
+
+### 패스워드 보안
+```java
+@Bean
+public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(12); // 강도 12 사용
+}
+
+// 패스워드 검증
+public boolean validatePassword(String rawPassword, String encodedPassword) {
+    return passwordEncoder.matches(rawPassword, encodedPassword);
+}
+```
+
+### CORS 설정
+```java
+@Bean
+public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+    configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
+    configuration.setAllowedHeaders(Arrays.asList("*"));
+    configuration.setAllowCredentials(true);
+    
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+}
+```
+
+### 보안 헤더 설정
+```java
+.headers(headers -> headers
+    .frameOptions().deny()
+    .contentTypeOptions().and()
+    .xssProtection().and()
+    .referrerPolicy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+    .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+        .maxAgeInSeconds(31536000)
+        .includeSubdomains(true))
+)
+```
+
+## 테스트 보안 설정
+
+### 테스트용 보안 설정
+```java
+@TestConfiguration
+public class TestSecurityConfig {
+    
+    @Bean
+    @Primary
+    public UserDetailsService testUserDetailsService() {
+        // 테스트용 사용자 정보 제공
+    }
+}
+```
+
+### 보안 테스트 어노테이션
+```java
+@WithMockUser(roles = "USER")
+@Test
+public void testUserAccess() { }
+
+@WithMockUser(roles = "ADMIN")
+@Test
+public void testAdminAccess() { }
+```

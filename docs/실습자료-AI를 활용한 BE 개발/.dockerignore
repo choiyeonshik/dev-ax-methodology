@@ -1,0 +1,67 @@
+# Gradle 빌드 관련
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# IDE 관련
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+out/
+
+# 운영체제 관련
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.temp
+.tmp/
+
+# Git 관련
+.git/
+.gitignore
+
+# Docker 관련
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# 문서 및 README
+README.md
+docs/
+*.md
+
+# 테스트 관련
+test-results/
+coverage/
+
+# 환경 변수 파일
+.env
+.env.local
+.env.production
+
+# 로컬 데이터베이스
+data/
+*.db
+*.sqlite
+
+# Node.js 관련 (프론트엔드가 있을 경우)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 기타
+.settings/
+.classpath
+.project
+.factorypath
+target/

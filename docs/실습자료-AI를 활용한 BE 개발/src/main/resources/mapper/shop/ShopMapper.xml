@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.carcenter.shop.repository.ShopRepository">
+
+    <!-- Result Map -->
+    <resultMap id="ShopResultMap" type="ShopDto">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="businessNumber" column="business_number"/>
+        <result property="address" column="address"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="latitude" column="latitude"/>
+        <result property="longitude" column="longitude"/>
+        <result property="operatingHours" column="operating_hours"/>
+        <result property="description" column="description"/>
+        <result property="rating" column="rating"/>
+        <result property="totalReviews" column="total_reviews"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <!-- 정비소 등록 -->
+    <insert id="insertShop" parameterType="ShopDto" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO shops (
+            name, business_number, address, phone, email, latitude, longitude,
+            operating_hours, description, rating, total_reviews, status, created_at, updated_at
+        ) VALUES (
+            #{name}, #{businessNumber}, #{address}, #{phone}, #{email}, #{latitude}, #{longitude},
+            #{operatingHours}, #{description}, 
+            #{rating}, #{totalReviews}, #{status}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 정비소 정보 조회 (ID로) -->
+    <select id="selectShopById" parameterType="long" resultMap="ShopResultMap">
+        SELECT id, name, business_number, address, phone, email, latitude, longitude,
+               operating_hours, description, rating, total_reviews, status, created_at, updated_at, deleted_at
+        FROM shops
+        WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <!-- 정비소 정보 조회 (사업자번호로) -->
+    <select id="selectShopByBusinessNumber" parameterType="string" resultMap="ShopResultMap">
+        SELECT id, name, business_number, address, phone, email, latitude, longitude,
+               operating_hours, description, rating, total_reviews, status, created_at, updated_at, deleted_at
+        FROM shops
+        WHERE business_number = #{businessNumber} AND deleted_at IS NULL
+    </select>
+
+    <!-- 모든 정비소 목록 조회 -->
+    <select id="selectAllShops" resultMap="ShopResultMap">
+        SELECT id, name, business_number, address, phone, email, latitude, longitude,
+               operating_hours, description, rating, total_reviews, status, created_at, updated_at, deleted_at
+        FROM shops
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 활성 정비소 목록 조회 -->
+    <select id="selectActiveShops" resultMap="ShopResultMap">
+        SELECT id, name, business_number, address, phone, email, latitude, longitude,
+               operating_hours, description, rating, total_reviews, status, created_at, updated_at, deleted_at
+        FROM shops
+        WHERE status = 'ACTIVE' AND deleted_at IS NULL
+        ORDER BY rating DESC, total_reviews DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 정비소 이름으로 검색 -->
+    <select id="selectShopsByName" resultMap="ShopResultMap">
+        SELECT id, name, business_number, address, phone, email, latitude, longitude,
+               operating_hours, description, rating, total_reviews, status, created_at, updated_at, deleted_at
+        FROM shops
+        WHERE name LIKE CONCAT('%', #{name}, '%') AND deleted_at IS NULL
+        ORDER BY rating DESC, total_reviews DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 위치 기반 정비소 검색 -->
+    <select id="selectShopsByLocation" resultMap="ShopResultMap">
+        SELECT id, name, business_number, address, phone, email, latitude, longitude,
+               operating_hours, description, rating, total_reviews, status, created_at, updated_at, deleted_at,
+               (6371 * acos(cos(radians(#{latitude})) * cos(radians(latitude)) * 
+                cos(radians(longitude) - radians(#{longitude})) + 
+                sin(radians(#{latitude})) * sin(radians(latitude)))) AS distance
+        FROM shops
+        WHERE deleted_at IS NULL
+          AND status = 'ACTIVE'
+          AND (6371 * acos(cos(radians(#{latitude})) * cos(radians(latitude)) * 
+               cos(radians(longitude) - radians(#{longitude})) + 
+               sin(radians(#{latitude})) * sin(radians(latitude)))) &lt;= #{radiusKm}
+        ORDER BY distance ASC, rating DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 평점 기준 정비소 검색 -->
+    <select id="selectShopsByRating" resultMap="ShopResultMap">
+        SELECT id, name, business_number, address, phone, email, latitude, longitude,
+               operating_hours, description, rating, total_reviews, status, created_at, updated_at, deleted_at
+        FROM shops
+        WHERE rating >= #{minRating} AND deleted_at IS NULL AND status = 'ACTIVE'
+        ORDER BY rating DESC, total_reviews DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 정비소 정보 수정 -->
+    <update id="updateShop" parameterType="ShopDto">
+        UPDATE shops
+        SET
+            <if test="name != null">name = #{name},</if>
+            <if test="businessNumber != null">business_number = #{businessNumber},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="latitude != null">latitude = #{latitude},</if>
+            <if test="longitude != null">longitude = #{longitude},</if>
+            <if test="operatingHours != null">operating_hours = #{operatingHours},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="status != null">status = #{status},</if>
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <!-- 정비소 평점 업데이트 -->
+    <update id="updateShopRating">
+        UPDATE shops
+        SET rating = #{rating}, total_reviews = #{totalReviews}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <!-- 정비소 상태 변경 -->
+    <update id="updateShopStatus">
+        UPDATE shops
+        SET status = #{status}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <!-- 정비소 삭제 (소프트 삭제) -->
+    <update id="deleteShop" parameterType="long">
+        UPDATE shops
+        SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 정비소 완전 삭제 -->
+    <delete id="deleteShopPermanently" parameterType="long">
+        DELETE FROM shops WHERE id = #{id}
+    </delete>
+
+    <!-- 사업자번호 중복 검사 -->
+    <select id="existsByBusinessNumber" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM shops
+        WHERE business_number = #{businessNumber} 
+          AND deleted_at IS NULL
+          <if test="excludeId != null">AND id != #{excludeId}</if>
+    </select>
+
+    <!-- 정비소 총 개수 조회 -->
+    <select id="countAllShops" resultType="int">
+        SELECT COUNT(*)
+        FROM shops
+        WHERE deleted_at IS NULL
+    </select>
+
+    <!-- 활성 정비소 개수 조회 -->
+    <select id="countActiveShops" resultType="int">
+        SELECT COUNT(*)
+        FROM shops
+        WHERE status = 'ACTIVE' AND deleted_at IS NULL
+    </select>
+
+    <!-- 위치 기반 정비소 개수 조회 -->
+    <select id="countShopsByLocation" resultType="int">
+        SELECT COUNT(*)
+        FROM shops
+        WHERE deleted_at IS NULL
+          AND status = 'ACTIVE'
+          AND (6371 * acos(cos(radians(#{latitude})) * cos(radians(latitude)) * 
+               cos(radians(longitude) - radians(#{longitude})) + 
+               sin(radians(#{latitude})) * sin(radians(latitude)))) &lt;= #{radiusKm}
+    </select>
+
+</mapper>

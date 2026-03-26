@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.carcenter.vehicle.repository.VehicleRepository">
+
+    <!-- Result Map -->
+    <resultMap id="VehicleResultMap" type="VehicleDto">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="licenseNumber" column="license_number"/>
+        <result property="manufacturer" column="manufacturer"/>
+        <result property="model" column="model"/>
+        <result property="modelYear" column="model_year"/>
+        <result property="engineType" column="engine_type"/>
+        <result property="mileage" column="mileage"/>
+        <result property="color" column="color"/>
+        <result property="vin" column="vin"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+    </resultMap>
+
+    <!-- 차량 등록 -->
+    <insert id="insertVehicle" parameterType="VehicleDto" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vehicles (
+            user_id, license_number, manufacturer, model, model_year, engine_type, 
+            mileage, color, vin, created_at, updated_at
+        ) VALUES (
+            #{userId}, #{licenseNumber}, #{manufacturer}, #{model}, #{modelYear}, #{engineType},
+            #{mileage}, #{color}, #{vin}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <!-- 차량 정보 조회 (ID로) -->
+    <select id="selectVehicleById" parameterType="long" resultMap="VehicleResultMap">
+        SELECT id, user_id, license_number, manufacturer, model, year, engine_type,
+               mileage, color, vin, created_at, updated_at, deleted_at
+        FROM vehicles
+        WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <!-- 차량 정보 조회 (차량번호로) -->
+    <select id="selectVehicleByLicenseNumber" parameterType="string" resultMap="VehicleResultMap">
+        SELECT id, user_id, license_number, manufacturer, model, year, engine_type,
+               mileage, color, vin, created_at, updated_at, deleted_at
+        FROM vehicles
+        WHERE license_number = #{licenseNumber} AND deleted_at IS NULL
+    </select>
+
+    <!-- 사용자별 차량 목록 조회 -->
+    <select id="selectVehiclesByUserId" parameterType="long" resultMap="VehicleResultMap">
+        SELECT id, user_id, license_number, manufacturer, model, year, engine_type,
+               mileage, color, vin, created_at, updated_at, deleted_at
+        FROM vehicles
+        WHERE user_id = #{userId} AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 사용자별 차량 목록 조회 (페이징) -->
+    <select id="selectVehiclesByUserIdWithPaging" resultMap="VehicleResultMap">
+        SELECT id, user_id, license_number, manufacturer, model, year, engine_type,
+               mileage, color, vin, created_at, updated_at, deleted_at
+        FROM vehicles
+        WHERE user_id = #{userId} AND deleted_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 사용자별 차량 개수 조회 -->
+    <select id="countVehiclesByUserId" parameterType="long" resultType="int">
+        SELECT COUNT(*)
+        FROM vehicles
+        WHERE user_id = #{userId} AND deleted_at IS NULL
+    </select>
+
+    <!-- 차량 정보 수정 -->
+    <update id="updateVehicle" parameterType="VehicleDto">
+        UPDATE vehicles
+        SET
+            <if test="licenseNumber != null">license_number = #{licenseNumber},</if>
+            <if test="manufacturer != null">manufacturer = #{manufacturer},</if>
+            <if test="model != null">model = #{model},</if>
+            <if test="modelYear != null">model_year = #{modelYear},</if>
+            <if test="engineType != null">engine_type = #{engineType},</if>
+            <if test="mileage != null">mileage = #{mileage},</if>
+            <if test="color != null">color = #{color},</if>
+            <if test="vin != null">vin = #{vin},</if>
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <!-- 차량 주행거리 업데이트 -->
+    <update id="updateVehicleMileage">
+        UPDATE vehicles
+        SET mileage = #{mileage}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND deleted_at IS NULL
+    </update>
+
+    <!-- 차량 삭제 (소프트 삭제) -->
+    <update id="deleteVehicle" parameterType="long">
+        UPDATE vehicles
+        SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 차량 완전 삭제 -->
+    <delete id="deleteVehiclePermanently" parameterType="long">
+        DELETE FROM vehicles WHERE id = #{id}
+    </delete>
+
+    <!-- 차량번호 중복 검사 -->
+    <select id="existsByLicenseNumber" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM vehicles
+        WHERE license_number = #{licenseNumber} 
+          AND deleted_at IS NULL
+          <if test="excludeId != null">AND id != #{excludeId}</if>
+    </select>
+
+    <!-- 제조사별 차량 목록 조회 -->
+    <select id="selectVehiclesByManufacturer" resultMap="VehicleResultMap">
+        SELECT id, user_id, license_number, manufacturer, model, year, engine_type,
+               mileage, color, vin, created_at, updated_at, deleted_at
+        FROM vehicles
+        WHERE manufacturer = #{manufacturer} AND deleted_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 연식별 차량 목록 조회 -->
+    <select id="selectVehiclesByYearRange" resultMap="VehicleResultMap">
+        SELECT id, user_id, license_number, manufacturer, model, year, engine_type,
+               mileage, color, vin, created_at, updated_at, deleted_at
+        FROM vehicles
+        WHERE year BETWEEN #{startYear} AND #{endYear} AND deleted_at IS NULL
+        ORDER BY year DESC, created_at DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+    <!-- 엔진 타입별 차량 목록 조회 -->
+    <select id="selectVehiclesByEngineType" resultMap="VehicleResultMap">
+        SELECT id, user_id, license_number, manufacturer, model, year, engine_type,
+               mileage, color, vin, created_at, updated_at, deleted_at
+        FROM vehicles
+        WHERE engine_type = #{engineType} AND deleted_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT #{page.size} OFFSET #{page.offset}
+    </select>
+
+</mapper>
